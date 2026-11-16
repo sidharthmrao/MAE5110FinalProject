@@ -31,6 +31,9 @@ class Go2OscCfg(Go2Cfg):
     class scaling(Go2Cfg.scaling):
         dof_pos_target = 4 * [0.2, 0.3, 0.3]
 
+    class asset(Go2Cfg.asset):
+        penalize_contacts_on = ["thigh", "calf"]
+
         
 
 class Go2OscRunnerCfg(Go2RunnerCfg):
@@ -62,3 +65,8 @@ class Go2OscRunnerCfg(Go2RunnerCfg):
 
     class runner(Go2RunnerCfg.runner):
         experiment_name = "go2osc"
+
+    class weights(Go2RunnerCfg.critic.reward.weights):
+        force_tracking = 4.0
+        collision = 2.0
+        min_base_height = 3.0
