@@ -55,6 +55,16 @@ class Go2Osc(Go2):
 
         self._update_oscillator_observations()
 
+    def _reward_orientation(self):
+        error = self.projected_gravity.clone()
+        error[:, 2] += 1.0
+
+        error = 0.5 * torch.sum(error**2, dim=1)
+
+        return 2.0 * torch.exp(
+            -error / self.cfg.reward_settings.tracking_sigma
+        )
+
     def _reset_idx(self, reset_mask):
         super()._reset_idx(reset_mask)
 
