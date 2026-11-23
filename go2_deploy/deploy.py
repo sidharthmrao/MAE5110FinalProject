@@ -2,6 +2,8 @@ import argparse
 import signal
 import sys
 import time
+import os
+import json
 
 def main():
     parser = argparse.ArgumentParser(description="Deploy a policy to a Unitree Go2.")
@@ -12,6 +14,18 @@ def main():
         "Without it, the actor is built from the latest training run in logs/.",
     )
     args = parser.parse_args()
+    if args.bundle:
+        meta_path = os.path.join(args.bundle, "deploy_meta.json")
+        with open(meta_path) as f:
+            meta = json.load(f)
+
+        selected = meta.get("implementation", "trot")
+
+        if os.environ.get("GO2_PHASE", selected) != selected:
+            parser.error("Selected phase does not match bundle")
+
+        os.environ["GO2_PHASE"] = selected
+
     if sys.platform != "linux":
         parser.error("Go2 deployment requires Linux (timerfd).")
 
@@ -49,6 +63,20 @@ def main():
         from go2_deploy.deploy_config import DeployConfig
 
         policy, cfg = None, DeployConfig()
+
+    from go2_deploy.utility.import_custom_impl import custom_impl
+
+    validate = getattr(custom_impl, "validate_hardware", None)
+
+    if validate is not None:
+        if not args.bundle:
+            parser.error("Phase deployment requires a policy bundle")
+
+        try:
+            validate(cfg)
+        except (ValueError, RuntimeError, KeyError) as exc:
+            parser.error(str(exc))
+            
     rl_controller = RLController(cfg, policy)
 
     # CycloneDDS 0.10.2 bug workaround

@@ -36,10 +36,12 @@ def main():
     parser.add_argument("--name", required=True, help="Bundle name")
     parser.add_argument("--run_name", help="Training run in logs/ (default: latest)")
     parser.add_argument("--out_root", default=DEFAULT_OUT_ROOT)
+    parser.add_argument("--experiment_name")
+    parser.add_argument("--checkpoint", type=int, default=-1)
     args = parser.parse_args()
 
     cfg = DeployConfig()
-    actor = setup_actor(args.run_name, cfg)
+    actor = setup_actor(run_name=args.run_name,deploy_cfg=cfg,experiment_name=args.experiment_name,checkpoint=args.checkpoint,)
     out_dir = os.path.join(args.out_root, args.name)
     provenance = {"run_name": args.run_name or "latest", "git_commit": git_commit()}
     meta_path = export_bundle(actor, cfg, out_dir, provenance)

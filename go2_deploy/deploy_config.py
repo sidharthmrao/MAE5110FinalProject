@@ -5,16 +5,17 @@ from go2_deploy.utility.import_custom_impl import custom_impl
 
 
 class DeployConfig:
-    task_name = "go2trot"
+    custom = custom_impl.CustomDeployConfig
+    task_name = getattr(custom, "task_name", "go2trot")
 
-    ctrl_freq = 100  # Hz
+    ctrl_freq = getattr(custom, "ctrl_freq", 100)  # Hz
     phase_frequency = 2.0  # Hz
 
-    kp = 30.0  # Default stiffness constant
-    kd = 2.0  # Default damping constant
+    kp = getattr(custom, "kp", 30.0)
+    kd = getattr(custom, "kd", 2.0)
 
     # Apply exponential moving average to actions
-    exp_moving_avg = True
+    exp_moving_avg = getattr(custom, "exp_moving_avg", True)
     ema_time_const = 0.095      # seconds
     ema_smoothing_factor = -np.expm1(-(1/ctrl_freq)/ema_time_const)     # alpha in EMA
 
@@ -30,6 +31,8 @@ class DeployConfig:
         "lin_vel_y": 1.0,  # m/s
         "yaw_vel": 3.0,  # rad/s
     }
+
+    command_limits = getattr(custom, "command_limits", command_limits)
 
     # Specify size of observation vector pieces
     obs_sizes = {
@@ -55,6 +58,10 @@ class DeployConfig:
             )
         ]
     )
+
+    default_dof_pos = getattr(
+    custom, "default_dof_pos", default_dof_pos
+)
 
     # s: how often terminal should print ctrl freq, instructions
     terminal_log_period = 2.0

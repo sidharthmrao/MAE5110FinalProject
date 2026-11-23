@@ -18,6 +18,7 @@ from datetime import datetime
 import torch
 
 from go2_deploy.deploy_config import DeployConfig
+from go2_deploy.utility.import_custom_impl import phase
 
 META_FILE = "deploy_meta.json"
 POLICY_FILE = "policy.pt"
@@ -81,6 +82,9 @@ def export_bundle(actor, cfg, out_dir, provenance=None):
             "exported_at": datetime.now().isoformat(),
             **(provenance or {}),
         },
+        "implementation": phase,
+        "ctrl_freq": cfg.ctrl_freq,
+        "exp_moving_avg": cfg.exp_moving_avg,   
     }
     meta_path = os.path.join(out_dir, META_FILE)
     with open(meta_path, "w") as f:
@@ -95,6 +99,21 @@ def config_from_meta(meta):
     defaults. Missing keys raise KeyError on purpose.
     """
     cfg = DeployConfig()
+    if meta.get("implementation", "trot") != phase:
+        raise ValueError("Incorrect controller implementation")
+
+    if meta["task_name"] != cfg.task_name:
+        raise ValueError("Incorrect policy task")
+
+    if meta["obs_vector"] != cfg.obs_vector:
+        raise ValueError("Observation layout mismatch")
+
+    if meta.get("ctrl_freq", cfg.ctrl_freq) != cfg.ctrl_freq:
+        raise ValueError("Control frequency mismatch")
+
+    if meta.get("exp_moving_avg", cfg.exp_moving_avg) != cfg.exp_moving_avg:
+        raise ValueError("Action smoothing mismatch")
+    
     cfg.task_name = meta["task_name"]
     cfg.obs_vector = list(meta["obs_vector"])
     cfg.obs_sizes = dict(meta["obs_sizes"])
