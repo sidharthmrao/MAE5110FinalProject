@@ -159,6 +159,7 @@ class OnPolicyRunner(BaseRunner):
             ),
             inplace=True,
         )
+
         rewards_dict[step].update(
             self.get_rewards(
                 self.critic_cfg["reward"]["weights"],

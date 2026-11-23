@@ -8,6 +8,8 @@ The selected backend is MuJoCo CPU/Warp or optional VSim.
 """
 
 import argparse
+import json
+from pathlib import Path
 
 from gym.utils.task_registry import task_registry
 from gym.utils.helpers import randomize_episode_counters, set_seed
@@ -174,6 +176,12 @@ def setup(args=None, env_cfg=None, train_cfg=None):
             train_cfg._original_cfg_source_dir if args.original_cfg else None
         ),
     )
+
+    if train_cfg.log_dir is not None:
+        run_args = dict(vars(args))
+        run_args["seed"] = train_cfg.seed
+        args_path = Path(train_cfg.log_dir) / "training_args.json"
+        args_path.write_text(json.dumps(run_args, indent=2) + "\n")
 
     return train_cfg, policy_runner
 

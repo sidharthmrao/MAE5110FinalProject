@@ -195,5 +195,8 @@ def test_enabled_rewards_include_leg_collision_penalty():
         "ang_vel_xy",
         "collision",
         "knee_clearance",
+        "hip_posture",
+        "stationary_lin_vel",
+        "stationary_yaw_vel",
     }
     assert reward_cfg["termination_weight"] == {"termination": 0.01}

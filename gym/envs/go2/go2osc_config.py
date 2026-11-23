@@ -33,18 +33,18 @@ class Go2OscCfg(Go2Cfg):
             "RR_foot": 0.75,
         }
         contact_threshold = 0.01  # fraction of body weight
+        contact_mismatch_penalty = 2.0
         knee_clearance = 0.10  # m; penalize knee joints below this height
 
     class commands(Go2Cfg.commands):
         class ranges(Go2Cfg.commands.ranges):
-            lin_vel_x = [0.3, 0.7]
+            lin_vel_x = [0.0, 0.0]
             lin_vel_y = 0.0
             yaw_vel = 0.0
 
     class scaling(Go2Cfg.scaling):
         dof_pos_target = 4 * [0.2, 0.3, 0.3]
 
-        
 
 class Go2OscRunnerCfg(Go2RunnerCfg):
 
@@ -64,12 +64,18 @@ class Go2OscRunnerCfg(Go2RunnerCfg):
 
         class reward(Go2RunnerCfg.critic.reward):
             class weights(Go2RunnerCfg.critic.reward.weights):
-                gait_contact = 4.0
+                gait_contact = 8.0
                 collision = 0.5
                 knee_clearance = 2.0
+                hip_posture = 2.0
+                stationary_lin_vel = 2.0
+                stationary_yaw_vel = 0.5
+                stationary_pitch_vel = 0.5
+                body_pitch = 2.0
+                ang_vel_xy = 1.0
                 tracking_lin_vel = 0.0
                 tracking_ang_vel = 0.0
-                min_base_height = 0.0
+                min_base_height = 1.5
 
     class algorithm(Go2RunnerCfg.algorithm):
         rollout_size = 16384

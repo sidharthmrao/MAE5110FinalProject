@@ -12,6 +12,14 @@ class Go2Osc(Go2):
         super()._init_buffers()
 
         foot_names = self.robot_layout.body_groups["feet"]
+        self.hip_indices = torch.tensor(
+            [
+                self.dof_names.index(name.replace("_foot", "_hip_joint"))
+                for name in foot_names
+            ],
+            dtype=torch.long,
+            device=self.device,
+        )
         self._phase_offsets = 2 * math.pi * torch.tensor(
             [self.cfg.osc.phase_offsets[name] for name in foot_names],
             dtype=torch.float,
@@ -106,24 +114,46 @@ class Go2Osc(Go2):
         self._update_oscillator_observations()
 
     def _reward_gait_contact(self):
-        # Negative sine marks stance. Missing a stance contact is penalized,
-        # so keeping every foot off the ground cannot cancel out the reward.
-        contact = (self.measured_grf > self.cfg.osc.contact_threshold).to(
-            self.phase.dtype
-        )
+        # Negative sine marks stance; at 0 Hz all feet should support the body.
+        contact = self.measured_grf > self.cfg.osc.contact_threshold
         stance = torch.sin(self.phase) < 0
-        gait_reward = torch.where(stance, 2 * contact - 1, -contact).mean(dim=1)
-        # At 0 Hz every foot should support a stationary robot. Keep the
-        # maximum at 0.5, matching the two-stance-foot moving gait.
-        standing_reward = contact.mean(dim=1) - 0.5
+        stance |= self.phase_frequency == 0.0
+
+        # Correct contact and flight have equal rewards and mismatch penalties.
         return torch.where(
-            self.phase_frequency[:, 0] == 0.0, standing_reward, gait_reward
-        )
+            contact == stance, 1.0, -self.cfg.osc.contact_mismatch_penalty
+        ).mean(dim=1)
 
     def _reward_orientation(self):
         # The parent reward uses only gravity's x/y components, which also
         # score an upside-down but level robot highly.
         return -2.0 * self.projected_gravity[:, 2]
+
+    def _reward_body_pitch(self):
+        # Gravity in the body frame isolates pitch independently of heading.
+        pitch = torch.atan2(
+            -self.projected_gravity[:, 0],
+            self.projected_gravity[:, 1:].norm(dim=1),
+        )
+        return -pitch.square()
+
+    def _reward_hip_posture(self):
+        error = (
+            self.dof_pos[:, self.hip_indices]
+            - self.default_dof_pos[:, self.hip_indices]
+        )
+        return -error.square().mean(dim=1)
+
+    def _reward_stationary_lin_vel(self):
+        # Discourage horizontal drift and vertical body bouncing.
+        return -self.base_lin_vel.square().sum(dim=1)
+
+    def _reward_stationary_yaw_vel(self):
+        return -self.base_ang_vel[:, 2].square()
+
+    def _reward_stationary_pitch_vel(self):
+        # Dampen rocking without imposing a target pitch angle.
+        return -self.base_ang_vel[:, 1].square()
 
     def _reward_knee_clearance(self):
         # The calf link origin is at the knee joint. Penalize approaching the
