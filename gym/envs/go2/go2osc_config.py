@@ -57,7 +57,7 @@ class Go2OscRunnerCfg(Go2RunnerCfg):
             class weights(Go2RunnerCfg.critic.reward.weights):
                 force_tracking = 4.0
                 collision = 2.0
-                min_base_height = 3.0
+                min_base_height = 1.5  # Was 3 before
 
     class algorithm(Go2RunnerCfg.algorithm):
         rollout_size = 16384
